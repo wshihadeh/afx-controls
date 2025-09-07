@@ -45,6 +45,7 @@ public class NavBarSkin extends SkinBase<NavBar> {
         modeBtn.getStyleClass().add("mode-btn");
         updateModeButtonIcon(getSkinnable().isCollapsed());
         modeBtn.setOnAction(e -> getSkinnable().setCollapsed(!getSkinnable().isCollapsed()));
+        
         placeHeaderButton(headerBar, modeBtn);
         getSkinnable().nodeOrientationProperty().addListener((o, ov, nv) -> placeHeaderButton(headerBar, modeBtn));
 
@@ -278,9 +279,9 @@ public class NavBarSkin extends SkinBase<NavBar> {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         if (getSkinnable().getNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT) {
-            bar.getChildren().addAll(btn, spacer);
-        } else {
             bar.getChildren().addAll(spacer, btn);
+        } else {
+            bar.getChildren().addAll(btn, spacer);
         }
     }
 
