@@ -74,7 +74,7 @@ public class NavBarSkin extends SkinBase<NavBar> {
 
         HBox header = new HBox(8);
         header.getStyleClass().add("nav-group-header");
-        Label arrow = new Label("▾");
+         Label arrow = new Label("^");
         arrow.getStyleClass().add("chevron");
 
         StackPane iconWrap = new StackPane();
@@ -98,7 +98,10 @@ public class NavBarSkin extends SkinBase<NavBar> {
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        header.getChildren().addAll(arrow, iconWrap, title, spacer);
+        
+        header.getChildren().addAll(iconWrap, title, spacer, arrow);
+        
+ 
 
         VBox itemsBox = new VBox(4);
         itemsBox.getStyleClass().add("nav-items");
@@ -115,7 +118,7 @@ public class NavBarSkin extends SkinBase<NavBar> {
             itemsBox.setVisible(false);
             itemsBox.setOpacity(0);
             itemsBox.setMaxHeight(0);
-            arrow.setRotate(-90);
+            arrow.setRotate(180);
         }
 
         header.setOnMouseClicked(e -> grp.setExpanded(!grp.isExpanded()));
@@ -148,12 +151,12 @@ public class NavBarSkin extends SkinBase<NavBar> {
             new KeyFrame(Duration.ZERO,
                 new KeyValue(itemsBox.maxHeightProperty(), startH, Interpolator.EASE_BOTH),
                 new KeyValue(itemsBox.opacityProperty(), expand ? 0 : 1, Interpolator.EASE_BOTH),
-                new KeyValue(arrow.rotateProperty(), expand ? -90 : 0, Interpolator.EASE_BOTH)
+                new KeyValue(arrow.rotateProperty(), expand ? 180 : 0, Interpolator.EASE_BOTH)
             ),
             new KeyFrame(Duration.millis(180),
                 new KeyValue(itemsBox.maxHeightProperty(), endH, Interpolator.EASE_BOTH),
                 new KeyValue(itemsBox.opacityProperty(), expand ? 1 : 0, Interpolator.EASE_BOTH),
-                new KeyValue(arrow.rotateProperty(), expand ? 0 : -90, Interpolator.EASE_BOTH)
+                new KeyValue(arrow.rotateProperty(), expand ? 0 : 180, Interpolator.EASE_BOTH)
             )
         );
 

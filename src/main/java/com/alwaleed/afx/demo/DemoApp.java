@@ -93,7 +93,7 @@ public class DemoApp extends Application {
         });
         
         Label wLbl = new Label("NavBar width");
-        Slider w = new Slider(140, 480, navBar.getPrefWidth());
+        Slider w = new Slider(300, 480, navBar.getPrefWidth());
         navBar.prefWidthProperty().bind(w.valueProperty());
         box.getChildren().addAll(wLbl, w);
 
@@ -121,9 +121,7 @@ public class DemoApp extends Application {
 
         // Put the NavBar at the left side of the demo area
         demo.setLeft(navBar);
-        navBar.setMinWidth(160);   // optional guard
-        navBar.setPrefWidth(260);  // <-- the width BorderPane will use for the LEFT region
-        navBar.setMaxWidth(480);   // optional guard
+        navBar.setMinWidth(480);   // optional guard
         BorderPane.setMargin(navBar, new Insets(0, 10, 0, 0));
 
         // A simple content area that shows the selected item text
