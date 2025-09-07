@@ -2,12 +2,15 @@ package com.alwaleed.afx.navbar;
 
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.SkinBase;
 import javafx.scene.layout.*;
 import javafx.animation.*;
 import javafx.util.Duration;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
 import java.util.HashMap;
@@ -17,8 +20,15 @@ import java.util.Map;
 public class NavBarSkin extends SkinBase<NavBar> {
     private final ScrollPane scroller = new ScrollPane();
     private final VBox content = new VBox(8);
+    private final HBox headerBar = new HBox(6);
+    private final Button modeBtn = new Button();
+    private final VBox root = new VBox(6); // header + scroller
     private final ToggleGroup toggleGroup = new ToggleGroup();
     private final Map<NavItem, ToggleButton> itemMap = new HashMap<>();
+    private final Map<NavGroup, VBox> itemsBoxMap = new HashMap<>();
+    private final Map<NavGroup, HBox> headerMap = new HashMap<>();
+    private ContextMenu activeMenu;
+    private double savedPrefWidth = -1;
 
     public NavBarSkin(NavBar control) {
         super(control);
@@ -31,13 +41,23 @@ public class NavBarSkin extends SkinBase<NavBar> {
         content.setPadding(new Insets(8));
         content.getStyleClass().add("nav-content");
 
-        getChildren().add(scroller);
+        headerBar.getStyleClass().add("nav-header");
+        modeBtn.getStyleClass().add("mode-btn");
+        updateModeButtonIcon(getSkinnable().isCollapsed());
+        modeBtn.setOnAction(e -> getSkinnable().setCollapsed(!getSkinnable().isCollapsed()));
+        placeHeaderButton(headerBar, modeBtn);
+        getSkinnable().nodeOrientationProperty().addListener((o, ov, nv) -> placeHeaderButton(headerBar, modeBtn));
+
+        root.getChildren().addAll(headerBar, scroller);
+        getChildren().add(root);
 
         control.getGroups().addListener((ListChangeListener<NavGroup>) c -> rebuild());
         control.compactProperty().addListener((obs, o, n) -> updateCompact(n));
         updateCompact(control.isCompact());
 
         control.selectedItemProperty().addListener((obs, old, val) -> syncSelection(val));
+        control.collapsedProperty().addListener((obs, o, n) -> updateCollapsed(n));
+        updateCollapsed(control.isCollapsed());
 
         rebuild();
     }
@@ -63,6 +83,8 @@ public class NavBarSkin extends SkinBase<NavBar> {
     private void rebuild() {
         content.getChildren().clear();
         itemMap.clear();
+        itemsBoxMap.clear();
+        headerMap.clear();
         for (NavGroup grp : getSkinnable().getGroups()) {
             content.getChildren().add(buildGroupView(grp));
         }
@@ -100,11 +122,12 @@ public class NavBarSkin extends SkinBase<NavBar> {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         
         header.getChildren().addAll(iconWrap, title, spacer, arrow);
-        
+        headerMap.put(grp, header);
  
 
         VBox itemsBox = new VBox(4);
         itemsBox.getStyleClass().add("nav-items");
+        itemsBoxMap.put(grp, itemsBox);
 
         // Initial state (no animation on first build)
         if (grp.isExpanded()) {
@@ -171,7 +194,100 @@ public class NavBarSkin extends SkinBase<NavBar> {
         });
         tl.play();
     }
+    private void updateCollapsed(boolean collapsed) {
+        var sk = getSkinnable();
+        // style class
+        if (collapsed) { if (!sk.getStyleClass().contains("collapsed")) sk.getStyleClass().add("collapsed"); }
+        else { sk.getStyleClass().remove("collapsed"); }
+        updateModeButtonIcon(collapsed);
 
+        // width clamp to icon size + padding
+        if (collapsed) {
+            if (savedPrefWidth < 0) savedPrefWidth = sk.getPrefWidth() > 0 ? sk.getPrefWidth() : 260;
+            double s = sk.getIconSize() + 16; // icon + padding
+            sk.setMinWidth(s); sk.setPrefWidth(s); sk.setMaxWidth(s);
+        } else {
+            if (savedPrefWidth > 0) sk.setPrefWidth(savedPrefWidth);
+            sk.setMinWidth(Region.USE_COMPUTED_SIZE);
+            sk.setMaxWidth(Region.USE_COMPUTED_SIZE);
+        }
+
+        // group behavior
+        headerMap.forEach((grp, header) -> {
+            VBox itemsBox = itemsBoxMap.get(grp);
+            if (collapsed) {
+                itemsBox.setManaged(false);
+                itemsBox.setVisible(false);
+                header.setOnMouseClicked(e -> showGroupMenu(header, grp));
+                attachHoverMenu(header, grp);
+            } else {
+                header.setOnMouseClicked(e -> grp.setExpanded(!grp.isExpanded()));
+                header.setOnMouseEntered(null);
+                header.setOnMouseExited(null);
+                boolean exp = grp.isExpanded();
+                itemsBox.setManaged(exp);
+                itemsBox.setVisible(exp);
+            }
+        });
+        if (activeMenu != null && collapsed == false) { activeMenu.hide(); activeMenu = null; }
+    }
+
+    private void showGroupMenu(Node owner, NavGroup grp) {
+        if (activeMenu != null) activeMenu.hide();
+        ContextMenu menu = new ContextMenu();
+        for (NavItem it : grp.getItems()) {
+            MenuItem mi = new MenuItem();
+            mi.textProperty().bind(it.textProperty());
+            if (it.getGraphic() instanceof ImageView iv && iv.getImage() != null) {
+                ImageView g = new ImageView(iv.getImage());
+                g.fitWidthProperty().bind(getSkinnable().iconSizeProperty());
+                g.fitHeightProperty().bind(getSkinnable().iconSizeProperty());
+                g.setPreserveRatio(true); g.setSmooth(true);
+                mi.setGraphic(g);
+            }
+            mi.setOnAction(e -> getSkinnable().setSelectedItem(it));
+            menu.getItems().add(mi);
+        }
+        Side side = getSkinnable().getNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT ? Side.LEFT : Side.RIGHT;
+        menu.setOnHidden(e -> { if (activeMenu == menu) activeMenu = null; });
+        menu.show(owner, side, 0, 0);
+        activeMenu = menu;
+    }
+
+    private void attachHoverMenu(Node header, NavGroup grp) {
+        PauseTransition pt = new PauseTransition(Duration.millis(200));
+        header.setOnMouseEntered(e -> { pt.setOnFinished(x -> showGroupMenu(header, grp)); pt.playFromStart(); });
+        header.setOnMouseExited(e -> pt.stop());
+    }
+
+    // header toggle placement: trailing (LTR) or leading (RTL)
+    private void placeHeaderButton(HBox bar, Button btn) {
+        bar.getChildren().clear();
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        if (getSkinnable().getNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT) {
+            bar.getChildren().addAll(btn, spacer);
+        } else {
+            bar.getChildren().addAll(spacer, btn);
+        }
+    }
+
+    private void updateModeButtonIcon(boolean collapsed) {
+        String name = collapsed ? "expand" : "collapse";
+        ImageView iv = loadIcon(name);
+        if (iv != null) { modeBtn.setGraphic(iv); modeBtn.setText(null); }
+        else { modeBtn.setGraphic(null); modeBtn.setText(collapsed ? "⇤" : "⇥"); }
+    }
+
+    private ImageView loadIcon(String name) {
+        var url = NavBar.class.getResource("/icons/" + name + ".png");
+        if (url == null) return null;
+        ImageView iv = new ImageView(new Image(url.toExternalForm()));
+        iv.fitWidthProperty().bind(getSkinnable().iconSizeProperty());
+        iv.fitHeightProperty().bind(getSkinnable().iconSizeProperty());
+        iv.setPreserveRatio(true); iv.setSmooth(true);
+        return iv;
+    }
     private void rebuildItems(VBox itemsBox, NavGroup grp) {
         itemsBox.getChildren().clear();
         for (NavItem item : grp.getItems()) {

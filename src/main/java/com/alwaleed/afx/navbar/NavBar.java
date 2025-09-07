@@ -16,6 +16,7 @@ public class NavBar extends Control {
     private final BooleanProperty compact = new SimpleBooleanProperty(this, "compact", false);
     private final ObjectProperty<Locale> locale = new SimpleObjectProperty<>(this, "locale", Locale.getDefault());
     private final DoubleProperty iconSize = new SimpleDoubleProperty(this, "iconSize", 18.0);
+    private final BooleanProperty collapsed = new SimpleBooleanProperty(this, "collapsed", false);
 
     private static final Set<String> RTL_LANGS = Set.of("ar", "he", "fa", "ur");
 
@@ -45,6 +46,9 @@ public class NavBar extends Control {
     public final void setLocale(Locale value) { locale.set(value); }
     public final ObjectProperty<Locale> localeProperty() { return locale; }
 
+    public final boolean isCollapsed() { return collapsed.get(); }
+    public final void setCollapsed(boolean value) { collapsed.set(value); }
+    public final BooleanProperty collapsedProperty() { return collapsed; }
 
     public final double getIconSize() { return iconSize.get(); }
     public final void setIconSize(double value) { iconSize.set(value); }

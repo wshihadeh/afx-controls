@@ -73,3 +73,22 @@
 }
 
 .chevron { -fx-opacity: 0.75; -fx-font-size: 12px; }
+
+/* header bar at the very top of the control */
+.nav-header {
+  -fx-padding: 6 6 0 6;
+}
+.mode-btn {
+  -fx-background-color: transparent;
+  -fx-padding: 4;
+  -fx-background-radius: 6;
+}
+.mode-btn:hover { -fx-background-color: rgba(0,0,0,0.06); }
+.nav-bar.collapsed .group-title,
+.nav-bar.collapsed .chevron {
+  -fx-opacity: 0;
+  -fx-min-width: 0;
+  -fx-max-width: 0;
+  -fx-padding: 0;
+  -fx-label-padding: 0;
+}
