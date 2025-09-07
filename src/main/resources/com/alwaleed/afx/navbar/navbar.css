@@ -71,3 +71,5 @@
   -fx-pref-width: 260;  /* effective width */
   -fx-max-width: 480;
 }
+
+.chevron { -fx-opacity: 0.75; -fx-font-size: 12px; }
