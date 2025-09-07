@@ -201,16 +201,28 @@ public class NavBarSkin extends SkinBase<NavBar> {
         else { sk.getStyleClass().remove("collapsed"); }
         updateModeButtonIcon(collapsed);
 
-        // width clamp to icon size + padding
-        if (collapsed) {
-            if (savedPrefWidth < 0) savedPrefWidth = sk.getPrefWidth() > 0 ? sk.getPrefWidth() : 260;
-            double s = sk.getIconSize() + 16; // icon + padding
-            sk.setMinWidth(s); sk.setPrefWidth(s); sk.setMaxWidth(s);
-        } else {
-            if (savedPrefWidth > 0) sk.setPrefWidth(savedPrefWidth);
-            sk.setMinWidth(Region.USE_COMPUTED_SIZE);
-            sk.setMaxWidth(Region.USE_COMPUTED_SIZE);
+    if (collapsed) {
+        // remember user's prefWidth only if NOT bound (so we can restore later)
+        if (savedPrefWidth < 0 && !sk.prefWidthProperty().isBound()) {
+            savedPrefWidth = sk.getPrefWidth() > 0 ? sk.getPrefWidth() : 260;
         }
+        double s = sk.getIconSize() + 16; // icon + padding
+        sk.setMinWidth(s);
+        sk.setMaxWidth(s);
+        if (!sk.prefWidthProperty().isBound()) {
+            sk.setPrefWidth(s);
+        }
+    } else {
+        sk.setMinWidth(Region.USE_COMPUTED_SIZE);
+        sk.setMaxWidth(Region.USE_COMPUTED_SIZE);
+        if (!sk.prefWidthProperty().isBound()) {
+            if (savedPrefWidth > 0) {
+                sk.setPrefWidth(savedPrefWidth);
+            } else {
+                sk.setPrefWidth(Region.USE_COMPUTED_SIZE);
+            }
+        }
+    }
 
         // group behavior
         headerMap.forEach((grp, header) -> {

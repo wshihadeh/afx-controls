@@ -15,8 +15,9 @@ public class NavBar extends Control {
     private final ObjectProperty<NavItem> selectedItem = new SimpleObjectProperty<>(this, "selectedItem");
     private final BooleanProperty compact = new SimpleBooleanProperty(this, "compact", false);
     private final ObjectProperty<Locale> locale = new SimpleObjectProperty<>(this, "locale", Locale.getDefault());
-    private final DoubleProperty iconSize = new SimpleDoubleProperty(this, "iconSize", 18.0);
+    private final DoubleProperty iconSize = new SimpleDoubleProperty(this, "iconSize", 60.0);
     private final BooleanProperty collapsed = new SimpleBooleanProperty(this, "collapsed", false);
+
 
     private static final Set<String> RTL_LANGS = Set.of("ar", "he", "fa", "ur");
 

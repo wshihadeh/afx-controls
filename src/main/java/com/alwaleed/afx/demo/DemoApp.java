@@ -93,9 +93,12 @@ public class DemoApp extends Application {
         });
         
         Label wLbl = new Label("NavBar width");
-        Slider w = new Slider(300, 480, navBar.getPrefWidth());
+        Slider w = new Slider(100, 1200, navBar.getPrefWidth());
         navBar.prefWidthProperty().bind(w.valueProperty());
         box.getChildren().addAll(wLbl, w);
+
+        w.setValue(300);
+
 
         // Compact toggle
         CheckBox compact = new CheckBox("Compact");
@@ -103,7 +106,7 @@ public class DemoApp extends Application {
 
         // Icon size slider (binds to NavBar.iconSize)
         Label iconSizeLbl = new Label("Icon size");
-        Slider iconSize = new Slider(16, 48, navBar.getIconSize());
+        Slider iconSize = new Slider(40, 200, navBar.getIconSize());
         iconSize.setShowTickMarks(true);
         iconSize.setMajorTickUnit(4);
         iconSize.setMinorTickCount(3);
@@ -121,7 +124,7 @@ public class DemoApp extends Application {
 
         // Put the NavBar at the left side of the demo area
         demo.setLeft(navBar);
-        navBar.setMinWidth(480);   // optional guard
+
         BorderPane.setMargin(navBar, new Insets(0, 10, 0, 0));
 
         // A simple content area that shows the selected item text
