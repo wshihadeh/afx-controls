@@ -6,9 +6,13 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.SkinBase;
 import javafx.scene.layout.*;
+import javafx.animation.*;
+import javafx.util.Duration;
+import javafx.scene.image.ImageView;
 
 import java.util.HashMap;
 import java.util.Map;
+
 
 public class NavBarSkin extends SkinBase<NavBar> {
     private final ScrollPane scroller = new ScrollPane();
@@ -72,31 +76,97 @@ public class NavBarSkin extends SkinBase<NavBar> {
         header.getStyleClass().add("nav-group-header");
         Label arrow = new Label("▾");
         arrow.getStyleClass().add("chevron");
+
+        StackPane iconWrap = new StackPane();
+        iconWrap.getStyleClass().add("group-icon");
+        sizeIconSlot(iconWrap);
+        if (grp.getGraphic() != null) {
+            iconWrap.getChildren().setAll(grp.getGraphic());
+            bindImageViewSizeIfNeeded(grp.getGraphic()); // NEW
+        }
+        grp.graphicProperty().addListener((obs, old, val) -> {
+            iconWrap.getChildren().clear();
+            if (val != null) {
+                iconWrap.getChildren().add(val);
+                bindImageViewSizeIfNeeded(val);
+            }
+        });
+
         Label title = new Label();
         title.getStyleClass().add("group-title");
         title.textProperty().bind(grp.titleProperty());
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        header.getChildren().addAll(arrow, title, spacer);
-        header.setOnMouseClicked(e -> grp.setExpanded(!grp.isExpanded()));
+        header.getChildren().addAll(arrow, iconWrap, title, spacer);
 
         VBox itemsBox = new VBox(4);
         itemsBox.getStyleClass().add("nav-items");
 
-        Runnable syncExpanded = () -> {
-            boolean exp = grp.isExpanded();
-            itemsBox.setManaged(exp);
-            itemsBox.setVisible(exp);
-            arrow.setRotate(exp ? 0 : -90);
-        };
-        syncExpanded.run();
-        grp.expandedProperty().addListener((obs, o, n) -> syncExpanded.run());
+        // Initial state (no animation on first build)
+        if (grp.isExpanded()) {
+            itemsBox.setManaged(true);
+            itemsBox.setVisible(true);
+            itemsBox.setOpacity(1);
+            itemsBox.setMaxHeight(Region.USE_COMPUTED_SIZE);
+            arrow.setRotate(0);
+        } else {
+            itemsBox.setManaged(false);
+            itemsBox.setVisible(false);
+            itemsBox.setOpacity(0);
+            itemsBox.setMaxHeight(0);
+            arrow.setRotate(-90);
+        }
+
+        header.setOnMouseClicked(e -> grp.setExpanded(!grp.isExpanded()));
+
+        grp.expandedProperty().addListener((obs, o, expand) -> animateExpanded(itemsBox, arrow, expand));
 
         grp.getItems().addListener((ListChangeListener<NavItem>) c -> rebuildItems(itemsBox, grp));
         rebuildItems(itemsBox, grp);
 
         box.getChildren().addAll(header, itemsBox);
         return box;
+    }
+
+    private void animateExpanded(VBox itemsBox, Label arrow, boolean expand) {
+        // Ensure measured size is up-to-date
+        double targetHeight = snapSize(itemsBox.prefHeight(-1));
+        if (Double.isNaN(targetHeight) || targetHeight <= 0) {
+            itemsBox.applyCss();
+            itemsBox.layout();
+            targetHeight = snapSize(itemsBox.prefHeight(-1));
+        }
+
+        itemsBox.setManaged(true);
+        itemsBox.setVisible(true);
+
+        double startH = expand ? 0 : itemsBox.getHeight();
+        double endH = expand ? targetHeight : 0;
+
+        Timeline tl = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(itemsBox.maxHeightProperty(), startH, Interpolator.EASE_BOTH),
+                new KeyValue(itemsBox.opacityProperty(), expand ? 0 : 1, Interpolator.EASE_BOTH),
+                new KeyValue(arrow.rotateProperty(), expand ? -90 : 0, Interpolator.EASE_BOTH)
+            ),
+            new KeyFrame(Duration.millis(180),
+                new KeyValue(itemsBox.maxHeightProperty(), endH, Interpolator.EASE_BOTH),
+                new KeyValue(itemsBox.opacityProperty(), expand ? 1 : 0, Interpolator.EASE_BOTH),
+                new KeyValue(arrow.rotateProperty(), expand ? 0 : -90, Interpolator.EASE_BOTH)
+            )
+        );
+
+        boolean collapse = !expand;
+        tl.setOnFinished(e -> {
+            if (collapse) {
+                itemsBox.setManaged(false);
+                itemsBox.setVisible(false);
+            } else {
+                itemsBox.setMaxHeight(Region.USE_COMPUTED_SIZE);
+            }
+        });
+        tl.play();
     }
 
     private void rebuildItems(VBox itemsBox, NavGroup grp) {
@@ -116,6 +186,21 @@ public class NavBarSkin extends SkinBase<NavBar> {
         text.getStyleClass().add("item-text");
         text.textProperty().bind(item.textProperty());
 
+        StackPane iconWrap = new StackPane();
+        iconWrap.getStyleClass().add("item-icon");
+        sizeIconSlot(iconWrap);
+        if (item.getGraphic() != null) {
+            iconWrap.getChildren().setAll(item.getGraphic());
+            bindImageViewSizeIfNeeded(item.getGraphic()); // NEW
+        }
+        item.graphicProperty().addListener((obs, old, val) -> {
+            iconWrap.getChildren().clear();
+            if (val != null) {
+                iconWrap.getChildren().add(val);
+                bindImageViewSizeIfNeeded(val); // NEW
+            }
+        });
+
         StackPane badge = new StackPane();
         badge.getStyleClass().add("badge");
         Label badgeLabel = new Label();
@@ -127,17 +212,9 @@ public class NavBarSkin extends SkinBase<NavBar> {
         HBox content = new HBox(8);
         content.getStyleClass().add("item-content");
 
-        if (item.getGraphic() != null) {
-            content.getChildren().add(item.getGraphic());
-        }
-        item.graphicProperty().addListener((obs, old, val) -> {
-            if (old != null) content.getChildren().remove(old);
-            if (val != null) content.getChildren().add(0, val);
-        });
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        content.getChildren().addAll(text, spacer, badge);
+        content.getChildren().addAll(iconWrap, text, spacer, badge);
 
         btn.setGraphic(content);
         btn.disableProperty().bind(item.disabledProperty());
@@ -148,5 +225,27 @@ public class NavBarSkin extends SkinBase<NavBar> {
 
         itemMap.put(item, btn);
         return btn;
+    }
+    private void sizeIconSlot(StackPane slot) {
+        var szProp = getSkinnable().iconSizeProperty();
+        // set initial size
+        double s = szProp.get();
+        slot.setMinSize(s, s);
+        slot.setPrefSize(s, s);
+        // update on changes
+        szProp.addListener((o, old, val) -> {
+            double nv = val.doubleValue();
+            slot.setMinSize(nv, nv);
+            slot.setPrefSize(nv, nv);
+        });
+    }
+
+    private void bindImageViewSizeIfNeeded(Node n) {
+        if (n instanceof ImageView iv) {
+            iv.fitWidthProperty().bind(getSkinnable().iconSizeProperty());
+            iv.fitHeightProperty().bind(getSkinnable().iconSizeProperty());
+            iv.setPreserveRatio(true);
+            iv.setSmooth(true);
+        }
     }
 }

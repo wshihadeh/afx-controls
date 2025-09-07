@@ -15,6 +15,7 @@ public class NavBar extends Control {
     private final ObjectProperty<NavItem> selectedItem = new SimpleObjectProperty<>(this, "selectedItem");
     private final BooleanProperty compact = new SimpleBooleanProperty(this, "compact", false);
     private final ObjectProperty<Locale> locale = new SimpleObjectProperty<>(this, "locale", Locale.getDefault());
+    private final DoubleProperty iconSize = new SimpleDoubleProperty(this, "iconSize", 18.0);
 
     private static final Set<String> RTL_LANGS = Set.of("ar", "he", "fa", "ur");
 
@@ -43,6 +44,11 @@ public class NavBar extends Control {
     public final Locale getLocale() { return locale.get(); }
     public final void setLocale(Locale value) { locale.set(value); }
     public final ObjectProperty<Locale> localeProperty() { return locale; }
+
+
+    public final double getIconSize() { return iconSize.get(); }
+    public final void setIconSize(double value) { iconSize.set(value); }
+    public final DoubleProperty iconSizeProperty() { return iconSize; }
 
     @Override protected Skin<?> createDefaultSkin() { return new NavBarSkin(this); }
 
