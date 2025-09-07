@@ -30,6 +30,9 @@ public class NavBarSkin extends SkinBase<NavBar> {
     private ContextMenu activeMenu;
     private double savedPrefWidth = -1;
 
+    private final Region headerSpacer = new Region();
+
+
     public NavBarSkin(NavBar control) {
         super(control);
 
@@ -42,6 +45,7 @@ public class NavBarSkin extends SkinBase<NavBar> {
         content.getStyleClass().add("nav-content");
 
         headerBar.getStyleClass().add("nav-header");
+        headerBar.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
         modeBtn.getStyleClass().add("mode-btn");
         updateModeButtonIcon(getSkinnable().isCollapsed());
         modeBtn.setOnAction(e -> getSkinnable().setCollapsed(!getSkinnable().isCollapsed()));
@@ -61,6 +65,8 @@ public class NavBarSkin extends SkinBase<NavBar> {
         control.selectedItemProperty().addListener((obs, old, val) -> syncSelection(val));
         control.collapsedProperty().addListener((obs, o, n) -> updateCollapsed(n));
         updateCollapsed(control.isCollapsed());
+
+        HBox.setHgrow(headerSpacer, Priority.ALWAYS);
 
         rebuild();
     }
@@ -278,13 +284,12 @@ public class NavBarSkin extends SkinBase<NavBar> {
     // header toggle placement: trailing (LTR) or leading (RTL)
     private void placeHeaderButton(HBox bar, Button btn) {
         bar.getChildren().clear();
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        var eff = bar.getEffectiveNodeOrientation();
+        var eff = getSkinnable().getEffectiveNodeOrientation(); // NavBar's resolved orientation
+
         if (eff == NodeOrientation.RIGHT_TO_LEFT) {
-            bar.getChildren().addAll(spacer, btn);
+            bar.getChildren().setAll(headerSpacer, btn);      // LTR → RIGHT
         } else {
-            bar.getChildren().addAll(btn, spacer);
+            bar.getChildren().setAll(btn, headerSpacer);      // RTL → LEFT
         }
     }
 
