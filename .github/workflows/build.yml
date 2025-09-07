@@ -29,13 +29,8 @@ jobs:
 
       - name: Ensure Gradle wrapper exists
         run: |
-          if [ ! -f gradlew ]; then
-            echo "gradlew not found — generating wrapper with system Gradle..."
             gradle -v
             gradle wrapper
-          else
-            echo "gradlew exists."
-          fi
 
       - name: Make wrapper executable
         run: chmod +x gradlew || true
