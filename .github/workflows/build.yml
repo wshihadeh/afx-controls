@@ -22,8 +22,23 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: gradle
 
-      - name: Setup Gradle
+      - name: Setup Gradle (with fallback to non-wrapper)
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Ensure Gradle wrapper exists
+        run: |
+          if [ ! -f gradlew ]; then
+            echo "gradlew not found — generating wrapper with system Gradle..."
+            gradle -v
+            gradle wrapper
+          else
+            echo "gradlew exists."
+          fi
+
+      - name: Make wrapper executable
+        run: chmod +x gradlew || true
 
       - name: Gradle build
         run: |
