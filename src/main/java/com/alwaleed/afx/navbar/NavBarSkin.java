@@ -4,6 +4,7 @@ import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Side;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.SkinBase;
@@ -12,6 +13,7 @@ import javafx.animation.*;
 import javafx.util.Duration;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.shape.Rectangle;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +39,16 @@ public class NavBarSkin extends SkinBase<NavBar> {
         super(control);
 
         scroller.setFitToWidth(true);
+        scroller.setFitToWidth(true);
+        scroller.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // no horizontal scrollbar
+        content.setFillWidth(true);
+        scroller.viewportBoundsProperty().addListener((obs, ov, vb) -> content.setPrefWidth(vb.getWidth()));
+
+        scroller.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        content.setFillWidth(true);
+        scroller.viewportBoundsProperty().addListener((obs, oldV, vb) -> {
+            content.setPrefWidth(vb.getWidth());
+        });
         scroller.setFocusTraversable(false);
         scroller.getStyleClass().add("nav-scroller");
         scroller.setContent(content);
@@ -209,29 +221,31 @@ public class NavBarSkin extends SkinBase<NavBar> {
         if (collapsed) { if (!sk.getStyleClass().contains("collapsed")) sk.getStyleClass().add("collapsed"); }
         else { sk.getStyleClass().remove("collapsed"); }
         updateModeButtonIcon(collapsed);
+        
 
-    if (collapsed) {
-        // remember user's prefWidth only if NOT bound (so we can restore later)
-        if (savedPrefWidth < 0 && !sk.prefWidthProperty().isBound()) {
-            savedPrefWidth = sk.getPrefWidth() > 0 ? sk.getPrefWidth() : 260;
-        }
-        double s = sk.getIconSize() + 16; // icon + padding
-        sk.setMinWidth(s);
-        sk.setMaxWidth(s);
-        if (!sk.prefWidthProperty().isBound()) {
-            sk.setPrefWidth(s);
-        }
-    } else {
-        sk.setMinWidth(Region.USE_COMPUTED_SIZE);
-        sk.setMaxWidth(Region.USE_COMPUTED_SIZE);
-        if (!sk.prefWidthProperty().isBound()) {
-            if (savedPrefWidth > 0) {
-                sk.setPrefWidth(savedPrefWidth);
-            } else {
-                sk.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        if (collapsed) {
+            // remember user's prefWidth only if NOT bound (so we can restore later)
+            if (savedPrefWidth < 0 && !sk.prefWidthProperty().isBound()) {
+                savedPrefWidth = sk.getPrefWidth() > 0 ? sk.getPrefWidth() : 260;
+            }
+        
+            double s = collapsedWidth();
+            sk.setMinWidth(s);
+            sk.setMaxWidth(s);
+            if (!sk.prefWidthProperty().isBound()) {
+                sk.setPrefWidth(s);
+            }
+        } else {
+            sk.setMinWidth(Region.USE_COMPUTED_SIZE);
+            sk.setMaxWidth(Region.USE_COMPUTED_SIZE);
+            if (!sk.prefWidthProperty().isBound()) {
+                if (savedPrefWidth > 0) {
+                    sk.setPrefWidth(savedPrefWidth);
+                } else {
+                    sk.setPrefWidth(Region.USE_COMPUTED_SIZE);
+                }
             }
         }
-    }
 
         // group behavior
         headerMap.forEach((grp, header) -> {
@@ -239,18 +253,28 @@ public class NavBarSkin extends SkinBase<NavBar> {
             if (collapsed) {
                 itemsBox.setManaged(false);
                 itemsBox.setVisible(false);
+
+                double s = collapsedWidth();
+                header.setMinWidth(s);
+                header.setPrefWidth(s);
+                header.setMaxWidth(s);
+
                 header.setOnMouseClicked(e -> showGroupMenu(header, grp));
                 attachHoverMenu(header, grp);
             } else {
                 header.setOnMouseClicked(e -> grp.setExpanded(!grp.isExpanded()));
                 header.setOnMouseEntered(null);
                 header.setOnMouseExited(null);
+                header.setMinWidth(Region.USE_COMPUTED_SIZE);
+                header.setPrefWidth(Region.USE_COMPUTED_SIZE);
+                header.setMaxWidth(Region.USE_COMPUTED_SIZE);
                 boolean exp = grp.isExpanded();
                 itemsBox.setManaged(exp);
                 itemsBox.setVisible(exp);
             }
         });
         if (activeMenu != null && collapsed == false) { activeMenu.hide(); activeMenu = null; }
+        content.requestLayout();
     }
 
     private void showGroupMenu(Node owner, NavGroup grp) {
@@ -304,8 +328,6 @@ public class NavBarSkin extends SkinBase<NavBar> {
         var url = NavBar.class.getResource("/icons/" + name + ".png");
         if (url == null) return null;
         ImageView iv = new ImageView(new Image(url.toExternalForm()));
-        iv.fitWidthProperty().bind(getSkinnable().iconSizeProperty());
-        iv.fitHeightProperty().bind(getSkinnable().iconSizeProperty());
         iv.setPreserveRatio(true); iv.setSmooth(true);
         return iv;
     }
@@ -367,17 +389,34 @@ public class NavBarSkin extends SkinBase<NavBar> {
         return btn;
     }
     private void sizeIconSlot(StackPane slot) {
-        var szProp = getSkinnable().iconSizeProperty();
-        // set initial size
-        double s = szProp.get();
-        slot.setMinSize(s, s);
-        slot.setPrefSize(s, s);
-        // update on changes
-        szProp.addListener((o, old, val) -> {
-            double nv = val.doubleValue();
-            slot.setMinSize(nv, nv);
-            slot.setPrefSize(nv, nv);
-        });
+        var sz = getSkinnable().iconSizeProperty();
+        Runnable apply = () -> {
+            double s = sz.get();
+            slot.setMinSize(s, s);
+            slot.setPrefSize(s, s);
+            slot.setMaxSize(s, s);
+            slot.setAlignment(Pos.CENTER);
+        };
+        apply.run();
+        sz.addListener((o, ov, nv) -> apply.run());
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(sz);
+        clip.heightProperty().bind(sz);
+        slot.setClip(clip);
+    }
+    private double collapsedWidth() {
+        double icon = getSkinnable().getIconSize();
+        double pad = 0;
+        // use any group header we already created to read its snapped insets
+        HBox sample = headerMap.values().stream().findFirst().orElse(null);
+        if (sample != null) {
+            sample.applyCss(); sample.layout();
+            pad = sample.snappedLeftInset() + sample.snappedRightInset();
+        } else {
+            // fallback to content padding if no headers yet
+            pad = content.getPadding().getLeft() + content.getPadding().getRight();
+        }
+        return icon + pad + 15;
     }
 
     private void bindImageViewSizeIfNeeded(Node n) {

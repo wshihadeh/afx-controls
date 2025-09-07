@@ -1,94 +1,105 @@
-.nav-bar {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-padding: 6;
-    -fx-background-radius: 12;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 12, 0.2, 0, 2);
-}
-
-.nav-bar.compact .nav-item {
-    -fx-padding: 6 10 6 10;
-    -fx-font-size: 12px;
-}
-
-.nav-scroller .viewport {
-    -fx-background-color: transparent;
-}
-
-.nav-content { }
-
-.nav-group { }
-
-.nav-group-header {
-    -fx-padding: 8 6 6 6;
-    -fx-font-weight: bold;
-    -fx-opacity: 0.9;
-}
-
-.group-title { }
-
-.chevron { -fx-opacity: 0.7; }
-
-.nav-items { -fx-padding: 2 0 10 0; }
-
-.nav-item {
-    -fx-alignment: CENTER_LEFT;
-    -fx-background-color: transparent;
-    -fx-padding: 10 12 10 12;
-    -fx-background-radius: 8;
-}
-
-.nav-item:hover { -fx-background-color: rgba(0,0,0,0.04); }
-
-.nav-item:selected {
-    -fx-background-color: -fx-accent;
-    -fx-text-fill: white;
-}
-
-.nav-item:selected .item-text { -fx-text-fill: white; }
-
-.item-content { -fx-alignment: CENTER_LEFT; }
-
-.badge {
-    -fx-background-color: rgba(0,0,0,0.12);
-    -fx-background-radius: 999;
-    -fx-padding: 2 6 2 6;
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-alignment: center;
-}
-
-.nav-item:selected .badge { -fx-background-color: rgba(255,255,255,0.35); }
-
-.section-title { -fx-font-weight: bold; -fx-opacity: 0.85; }
-
-.selected-label { -fx-font-size: 16px; }
-
-.group-icon { -fx-alignment: center; }
-.item-icon { -fx-alignment: center; }
+/* --- Base --------------------------------------------------------------- */
 
 .nav-bar {
-  -fx-min-width: 160;
-  -fx-pref-width: 260;  /* effective width */
-  -fx-max-width: 480;
+  -fx-background-color: -fx-control-inner-background;
+  -fx-padding: 0;
+  -fx-background-radius: 12;
+  -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 12, 0.2, 0, 2);
+
 }
 
-.chevron { -fx-opacity: 0.75; -fx-font-size: 12px; }
+/* ScrollPane visuals */
+.nav-scroller .viewport { -fx-background-color: transparent; }
 
-/* header bar at the very top of the control */
-.nav-header {
-  -fx-padding: 6 6 0 6;
-}
+/* --- Header bar --------------------------------------------------------- */
+
+.nav-header { -fx-padding: 0 0 0 0; }
+
 .mode-btn {
   -fx-background-color: transparent;
-  -fx-padding: 4;
+  -fx-padding: 0;
   -fx-background-radius: 6;
 }
 .mode-btn:hover { -fx-background-color: rgba(0,0,0,0.06); }
+
+/* --- Groups ------------------------------------------------------------- */
+
+.nav-group-header {
+  -fx-padding: 0 0 0 0;
+  -fx-font-weight: bold;
+  -fx-opacity: 0.9;
+  -fx-alignment: CENTER_LEFT;
+  -fx-spacing: 8;            /* HBox spacing in header */
+}
+
+.group-icon { -fx-alignment: center; }  /* width/height capped in code */
+.chevron    { -fx-opacity: 0.75; -fx-font-size: 12px; }
+
+.nav-items { -fx-padding: 0 0 0 0; }
+
+/* --- Items -------------------------------------------------------------- */
+
+.nav-item {
+  -fx-alignment: CENTER_LEFT;
+  -fx-background-color: transparent;
+  -fx-padding: 0 0 0 0;
+  -fx-background-radius: 8;
+}
+.nav-item:hover   { -fx-background-color: rgba(0,0,0,0.04); }
+.nav-item:focused { -fx-background-color: rgba(0,0,0,0.06); } /* keyboard focus */
+.nav-item:disabled { -fx-opacity: 0.5; }
+
+.nav-item:selected {
+  -fx-background-color: -fx-accent;
+  -fx-text-fill: white;
+}
+.nav-item:selected .item-text { -fx-text-fill: white; }
+
+.item-content { 
+  -fx-alignment: CENTER_LEFT;
+  -fx-spacing: 0;            /* HBox spacing in item row */
+}
+
+.item-icon { -fx-alignment: center; }   /* width/height capped in code */
+
+.badge {
+  -fx-background-color: rgba(0,0,0,0.12);
+  -fx-background-radius: 999;
+  -fx-padding: 0 0 0 0;
+  -fx-font-size: 11px;
+  -fx-font-weight: bold;
+  -fx-alignment: center;
+}
+.nav-item:selected .badge { -fx-background-color: rgba(255,255,255,0.35); }
+
+/* --- Compact mode ------------------------------------------------------- */
+
+.nav-bar.compact .nav-item {
+  -fx-padding: 0 0 0 0;
+  -fx-font-size: 12px;
+}
+.nav-bar.compact .nav-group-header {
+  -fx-padding: 0 0 0 0;
+}
+
+/* --- Collapsed mode (icons-only) --------------------------------------- */
+/* These trims avoid any horizontal overflow when collapsed. */
+
 .nav-bar.collapsed .group-title,
-.nav-bar.collapsed .chevron {
+.nav-bar.collapsed .chevron,
+.nav-bar.collapsed .item-text,
+.nav-bar.collapsed .badge {
   -fx-opacity: 0;
   -fx-min-width: 0;
   -fx-max-width: 0;
   -fx-padding: 0;
   -fx-label-padding: 0;
 }
+
+.nav-bar.collapsed .nav-group-header,
+.nav-bar.collapsed .nav-item {
+  -fx-padding: 0;      /* symmetric, small */
+}
+
+.nav-bar.collapsed .nav-group-header { -fx-spacing: 0; }  /* header HBox spacing = 0 */
+.nav-bar.collapsed .item-content    { -fx-spacing: 0; }   /* item HBox spacing = 0 */
