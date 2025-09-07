@@ -4,10 +4,11 @@ import com.alwaleed.afx.navbar.*;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
-import javafx.geometry.NodeOrientation;
+import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.Slider;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -19,30 +20,67 @@ import java.util.ResourceBundle;
 
 public class DemoApp extends Application {
     private final NavBar navBar = new NavBar();
+    private SplitPane rightSplit; // top: controls, bottom: demo
 
-    @Override public void start(Stage stage) {
+    @Override
+    public void start(Stage stage) {
         BorderPane root = new BorderPane();
 
-        SplitPane split = new SplitPane();
-        split.getItems().addAll(buildSidebar(), buildContent());
-        split.setDividerPositions(0.28);
-        root.setCenter(split);
+        rightSplit = buildRightSplit();   // hidden until user selects "NavBar" in the tree
+        rightSplit.setVisible(false);
+
+        root.setLeft(buildExplorer());
+        root.setCenter(rightSplit);
 
         Scene scene = new Scene(root, 980, 640);
         stage.setScene(scene);
         stage.setTitle("AFX Controls — NavBar Demo");
         stage.show();
 
-        // initial content
+        // Initial model content (so when user clicks “NavBar” it’s ready)
         populate(navBar.getLocale());
     }
 
-    private VBox buildSidebar() {
+    // LEFT: explorer (TreeView) with one item: NavBar
+    private Region buildExplorer() {
+        var rootItem = new TreeItem<>("Controls");
+        rootItem.setExpanded(true);
+
+        var navBarNode = new TreeItem<>("NavBar");
+        rootItem.getChildren().add(navBarNode);
+
+        TreeView<String> tree = new TreeView<>(rootItem);
+        tree.setShowRoot(false);
+        tree.setMinWidth(180);
+        tree.setPrefWidth(220);
+
+        tree.getSelectionModel().selectedItemProperty().addListener((obs, old, it) -> {
+            if (it != null && "NavBar".equals(it.getValue())) {
+                rightSplit.setVisible(true);
+            }
+        });
+
+        VBox box = new VBox(tree);
+        box.setPadding(new Insets(10));
+        return box;
+    }
+
+    // RIGHT (container): vertical split — top controls / bottom demo
+    private SplitPane buildRightSplit() {
+        SplitPane sp = new SplitPane();
+        sp.setOrientation(Orientation.VERTICAL);
+        sp.getItems().addAll(buildControlsPane(), buildNavBarDemo());
+        sp.setDividerPositions(0.15); // ~35% controls, 65% demo
+        return sp;
+    }
+
+    // TOP (right side): controls only
+    private VBox buildControlsPane() {
         VBox box = new VBox(8);
         box.setPadding(new Insets(10));
 
-        box.setMinWidth(160);
-        box.setPrefWidth(260);
+        Label header = new Label("Demo Controls");
+        header.getStyleClass().add("section-title");
 
         // Language selector
         ComboBox<String> lang = new ComboBox<>();
@@ -53,56 +91,73 @@ public class DemoApp extends Application {
             navBar.setLocale(locale);
             populate(locale);
         });
+        
+        Label wLbl = new Label("NavBar width");
+        Slider w = new Slider(140, 480, navBar.getPrefWidth());
+        navBar.prefWidthProperty().bind(w.valueProperty());
+        box.getChildren().addAll(wLbl, w);
 
         // Compact toggle
         CheckBox compact = new CheckBox("Compact");
         navBar.compactProperty().bind(compact.selectedProperty());
 
-        // NEW: Icon size slider (12..40 px)
+        // Icon size slider (binds to NavBar.iconSize)
         Label iconSizeLbl = new Label("Icon size");
-        Slider iconSize = new Slider(60, 120, navBar.getIconSize());
+        Slider iconSize = new Slider(16, 48, navBar.getIconSize());
         iconSize.setShowTickMarks(true);
         iconSize.setMajorTickUnit(4);
         iconSize.setMinorTickCount(3);
         iconSize.setBlockIncrement(1);
         navBar.iconSizeProperty().bindBidirectional(iconSize.valueProperty());
 
-        Label controls = new Label("Demo Controls");
-        controls.getStyleClass().add("section-title");
-        box.getChildren().addAll(controls, lang, compact, iconSizeLbl, iconSize, new Separator(), navBar);
-        VBox.setVgrow(navBar, Priority.ALWAYS);
+        box.getChildren().addAll(header, lang, compact, iconSizeLbl, iconSize, new Separator());
         return box;
     }
 
-    private Pane buildContent() {
-        StackPane center = new StackPane();
-        center.setPadding(new Insets(24));
+    // BOTTOM (right side): the actual NavBar demo (NavBar on the left, content in center)
+    private Pane buildNavBarDemo() {
+        BorderPane demo = new BorderPane();
+        demo.setPadding(new Insets(10));
 
+        // Put the NavBar at the left side of the demo area
+        demo.setLeft(navBar);
+        navBar.setMinWidth(160);   // optional guard
+        navBar.setPrefWidth(260);  // <-- the width BorderPane will use for the LEFT region
+        navBar.setMaxWidth(480);   // optional guard
+        BorderPane.setMargin(navBar, new Insets(0, 10, 0, 0));
+
+        // A simple content area that shows the selected item text
+        StackPane content = new StackPane();
+        content.setPadding(new Insets(24));
         Label selectedLabel = new Label();
         selectedLabel.getStyleClass().add("selected-label");
         selectedLabel.textProperty().bind(Bindings.createStringBinding(
-                () -> {
-                    NavItem it = navBar.getSelectedItem();
-                    return it == null ? "Select an item…" : ("Selected: " + it.getText());
-                }, navBar.selectedItemProperty()));
+            () -> {
+                NavItem it = navBar.getSelectedItem();
+                return it == null ? "Select an item…" : ("Selected: " + it.getText());
+            },
+            navBar.selectedItemProperty()
+        ));
+        content.getChildren().add(selectedLabel);
 
-        center.getChildren().add(selectedLabel);
-        return center;
+        demo.setCenter(content);
+        return demo;
     }
 
+    // Builds demo data based on the active locale
     private void populate(Locale locale) {
         ResourceBundle rb = ResourceBundle.getBundle("i18n.messages", locale);
 
         navBar.getGroups().clear();
 
         NavGroup main = new NavGroup(rb.getString("group.main"));
-        main.setGraphic(icon("home")); // group header icon (image)
+        main.setGraphic(icon("home")); // group header icon
         main.getItems().add(item("home", rb.getString("item.home"), "home"));
         main.getItems().add(item("search", rb.getString("item.search"), "search"));
         main.getItems().add(item("downloads", rb.getString("item.downloads"), "downloads").withBadge(3));
 
         NavGroup tools = new NavGroup(rb.getString("group.tools"));
-        tools.setGraphic(icon("settings")); // group header icon (image)
+        tools.setGraphic(icon("settings"));
         tools.getItems().add(item("reports", rb.getString("item.reports"), "reports"));
         tools.getItems().add(item("settings", rb.getString("item.settings"), "settings"));
 
@@ -117,29 +172,24 @@ public class DemoApp extends Application {
     }
 
     /**
-     * Loads a 18x18 icon from src/main/resources/icons/{name}.png, with fallback emoji when missing.
-     * If you want RTL mirroring for directional icons, uncomment the scaleX binding below.
+     * Load an icon from src/main/resources/icons/{name}.png and bind size to navBar.iconSize.
      */
     private ImageView icon(String name) {
         URL url = getClass().getResource("/icons/" + name + ".png");
-        if (url == null) {
-            // Fallback: simple emoji label-as-image for dev visibility
-            ImageView iv = new ImageView();
-            iv.setPreserveRatio(true);
-            return iv; // empty — you can also return new Label("⬜") if preferred
-        }
-        ImageView iv = new ImageView(new Image(url.toExternalForm()));
-        // Bind to NavBar.iconSize so user can adjust from the demo
-        iv.fitWidthProperty().bind(navBar.iconSizeProperty());
-        iv.fitHeightProperty().bind(navBar.iconSizeProperty());
+        ImageView iv = new ImageView();
         iv.setPreserveRatio(true);
         iv.setSmooth(true);
 
-        // Optional RTL mirroring for directional icons:
-        // iv.scaleXProperty().bind(Bindings.when(navBar.nodeOrientationProperty()
-        //         .isEqualTo(NodeOrientation.RIGHT_TO_LEFT)).then(-1.0).otherwise(1.0));
+        if (url != null) {
+            iv.setImage(new Image(url.toExternalForm()));
+        }
+        // Bind to NavBar.iconSize so the slider affects both group and item icons
+        iv.fitWidthProperty().bind(navBar.iconSizeProperty());
+        iv.fitHeightProperty().bind(navBar.iconSizeProperty());
         return iv;
     }
 
-    public static void main(String[] args) { launch(args); }
+    public static void main(String[] args) {
+        launch(args);
+    }
 }
