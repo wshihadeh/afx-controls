@@ -48,6 +48,8 @@ public class NavBarSkin extends SkinBase<NavBar> {
         
         placeHeaderButton(headerBar, modeBtn);
         getSkinnable().nodeOrientationProperty().addListener((o, ov, nv) -> placeHeaderButton(headerBar, modeBtn));
+        getSkinnable().localeProperty().addListener((o, ov, nv) -> placeHeaderButton(headerBar, modeBtn));
+
 
         root.getChildren().addAll(headerBar, scroller);
         getChildren().add(root);
@@ -278,7 +280,8 @@ public class NavBarSkin extends SkinBase<NavBar> {
         bar.getChildren().clear();
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        if (getSkinnable().getNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT) {
+        var eff = bar.getEffectiveNodeOrientation();
+        if (eff == NodeOrientation.RIGHT_TO_LEFT) {
             bar.getChildren().addAll(spacer, btn);
         } else {
             bar.getChildren().addAll(btn, spacer);
